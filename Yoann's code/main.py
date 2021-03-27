@@ -11,9 +11,6 @@ import json
 from copy import deepcopy
 from itertools import product
 
-WIN = 'w'
-LOSE = 'l'
-DRAW = 'd'
 
 # If you want to separate your code into separate files, put them
 # inside the `search` directory (like this one and `util.py`) and
@@ -49,8 +46,8 @@ class Node():
         return self.neighbours
 
 def valid_position(node):
-    """valid_position returns true if the position is not blocked by a block 
-    token or is out of range of the board"""
+    """valid_position returns true if the position is not blocked by a block token or 
+    is out of range of the board"""
     
     ran = range(-4, +4+1)
     valids =  [rq for rq in [(r,q) for r in ran for q in ran if -r-q in ran]]
@@ -63,104 +60,22 @@ def valid_position(node):
             return 0
     return 1
 
-def battle(u, l):
-    """ return 1 if tok1 defeats tok2, 
-               2 if tok2 is defeated by tok2
-               3 if none is defeated """  
-    if ((u == 'r' and l =='s') or 
-        (u == 'p' and l =='r') or 
-        (u == 's' and l =='p')):
-        return WIN 
-    elif ((u == 's' and l =='r') or 
-         (u == 'r' and l =='p') or 
-         (u == 'p' and l =='s')):
-        return LOSE
-    else: 
-        return DRAW
-
-
-def upper_wl_upper(which, up_vs_lo, i):
-    """Return the list of indices of upper and lower tokens to be removed when 
-       up1 wins or loses with up2. Parameter "which" is the index of upper 
-       token which won up_vs_up"""
-
-    if up_vs_lo == WIN:
-        # lower token has same symbol as u2
-        return [[int(not which)],[i]] # other upper token and lower token defeated
-    elif up_vs_lo == LOSE:
-        # up1, up2, and lower token all have different symbols
-        return [[0,1], [i]] # all tokens defeated
-    elif up_vs_lo == DRAW:
-        # only u2 is defeated
-        return [[int(not which)], []]
-
-def upper_d_upper(up_vs_lo, i):
-    """Return the list of indices of upper and lower tokens to be removed when
-       up1 draws with up2"""
-    if up_vs_lo == WIN:
-        return [[], [i]] # lower token is defeated
-    elif up_vs_lo == LOSE:
-        return [[0,1], []] # both upper tokens are defeated
-    elif up_vs_lo == DRAW:
-        return [[], []] # nothing happens
-
-def upper_vs_lower(which, u, l, tokens_defeated, i):
-
-    up_vs_lo = battle(u, l)
-    if up_vs_lo == WIN:
-        tokens_defeated[1].append(i)
-    elif up_vs_lo == LOSE:
-        tokens_defeated[0].append(int(not which))
-
-    return tokens_defeated
-
-def find_defeated_tokens(node):
-    """Return a list that contains the indices of the upper and lower 
-    tokens to be removed"""
+def token_defeated(node):
+    """returns the indices of the lower tokens defeated, if none return -1 """
     
-    tokens_defeated = [[],[]]
+    up = node.upper[0]
 
-    if len(node.upper) == 1:
-        up = node.upper[0]
-        # Find the index of the lower token defeated
-        for i, lo in enumerate(node.lower):
-            if (up[1], up[2]) == (lo[1], lo[2]):
-                # The upper token always defeats the lower token
-                # at this point anyway, since game specifications
-                # says the game will always be winnable i.e. the 
-                # upper token will always defeat the lower token
-                return [[],[i]]
-        return tokens_defeated # will be empty list
-    
-    elif len(node.upper) == 2:
-        up1 = node.upper[0]
-        up2 = node.upper[1]
-        for i, lo in enumerate(node.lower):
+    indices = [] # indices of lower tokens that share the same hex as up
+    for i, lo in enumerate(node.lower):
+        if (up[1], up[2]) == (lo[1], lo[2]):
+            u = up[0]
+            l = lo[0]
 
-            # if both upper tokens share the same hex as lower token
-            if (up1[1], up1[2]) == (lo[1], lo[2]) and \
-               (up2[1], up2[2]) == (lo[1], lo[2]):
-
-                up_vs_up = battle(up1[0], up2[0])
-                up_vs_lo = battle(up1[0], lo[0])
-            
-                if up_vs_up == WIN:
-                    return upper_wl_upper(0, up_vs_lo, i)
-            
-                elif up_vs_up == LOSE:
-                    return upper_wl_upper(1, up_vs_lo, i)
-
-                elif up_vs_up == DRAW:
-                    return upper_d_upper(up_vs_lo, i)
-
-            elif (up1[1], up1[2]) == (lo[1], lo[2]):
-                tokens_defeated = upper_vs_lower(0, up1[0], lo[0], 
-                                                 tokens_defeated, i)
-
-            elif (up2[1], up2[2]) == (lo[1], lo[2]):
-                tokens_defeated = upper_vs_lower(1, up2[0], lo[0], 
-                                                 tokens_defeated, i)
-        return tokens_defeated
+            if ((u == 'r' and l =='s') or 
+            (u == 'p' and l =='r') or 
+            (u == 's' and l =='p')):
+                return i
+    return -1
 
 def sign(num):
     # sign function
@@ -169,24 +84,16 @@ def sign(num):
     else:
         return 1
 
-def simple_h(tok1, tok2):
+def simple_h(up, lo):
     # calculate the estimated cost to reach from tok1 to tok2
-    dr = tok1[1] - tok2[1]
-    dq = tok1[2] - tok2[2]
+    
+    dr = up[1] - lo[1]
+    dq = up[2] - lo[2]
 
     if sign(dr) == sign(dq):
         return abs(dr+dq)
     else:
         return max(abs(dr), abs(dq)) 
-
-def winning_symbol(up):
-    # winning_symbol returns the symbol that is defeated by up
-    if up=="r":
-        return "s"
-    elif up=="s":
-        return "p"
-    elif up=="p":
-        return "r"
 
 def distance(node):
     """calculate the estimated cost (h) for a node to reach its goal state. 
@@ -194,33 +101,21 @@ def distance(node):
     winning token, and then distance from that winning token to another winning 
     token. In other words, for example R -> s1 -> s2 """
     
-    total_h = 0
-    # print("\nupper: ", node.upper, "\tlower: ", node.lower)
-    for up in node.upper:
-        # print("current upper: ", up)
-        node_copy = deepcopy(node)
-        # while len(node_copy.lower):
-        h = []
-        for lo in node_copy.lower:
-            # make sure we are only considering the "goal" lower tokens
-            # with respect to the upper token 
-            if winning_symbol(up[0]) == lo[0]:
-                h.append(simple_h(up, lo))
-            else:
-                h.append(float('inf')) # infinite distance
-        
-        if all(x==float('inf') for x in h):
-            # means the upper token does not have any goal. In this case
-            # its h value is 0 
-            total_h += 0
-        else:
-            i = h.index(min(h))
-            total_h += h[i]
-            up = node_copy.lower.pop(i)
-        # print("h:", h)
-    # print("total_h:", total_h)
+    node_copy = deepcopy(node)
 
-    return total_h
+    up = node_copy.upper[0]
+    total_h = 0
+    
+  
+    while len(node_copy.lower):
+        h = [] 
+        for lo in node_copy.lower:
+            h.append(simple_h(up, lo))
+        i = h.index(min(h))
+        total_h += h[i]
+        up = node_copy.lower.pop(i)
+        
+    return sum(h)
 
 def get_board_dict(data):
     
@@ -241,15 +136,16 @@ def get_board_dict(data):
                 board_dict[(tok[1], tok[2])] = "(X)"
     return board_dict
 
+
 def get_g_score(node, pq):
     """ Priority queue has format [[f-score, node], ...]. get_g_score 
-    checks if the combination of upper tokens and lower tokens can be found in 
-    the priority queue; and if yes, returns the g-score of the similar node 
-    found in the priority queue. It returns -1 if it is not present """
+    checks if the combination of upper tokens and lower tokens can be found in the 
+    priority queue; and if yes, returns the g-score of the similar node found
+    in the priority queue. It returns -1 if it is not present """
     nodes = [(n.upper,n.lower) for f,n in pq]
 
     try:
-        # find index i of the corresponding node, raise error if not found
+        # find index i of the corresponding node, will raise an error if not found
         i = nodes.index((node.upper, node.lower))
         # return the g-score of the i'th node in priority queue 
         return [n.g for f,n in pq][i]
@@ -257,9 +153,9 @@ def get_g_score(node, pq):
         return -1
 
 def sort_priority_queue(pq):
-    """sorts the priority queue by f-score. Also puts node that have the 
-    least number of lower tokens at the front. This ensures that the 
-    algorithm looks at states that are closer to the goal first"""
+    """sorts the priority queue by f-score. Also puts node that have the least number of 
+    lower tokens at the front. This ensures that the algorithm looks at states that are closer
+    to the goal first"""
 
     pq = sorted(pq, key=lambda x: x[0])
     min_f = pq[0][0] # least f-score
@@ -279,6 +175,8 @@ def sort_priority_queue(pq):
     pq[0], pq[best_i] = pq[best_i], pq[0] 
     return pq
 
+
+
 def main():
 
     try:
@@ -288,7 +186,7 @@ def main():
         print("usage: python3 -m search path/to/input.json", file=sys.stderr)
         sys.exit(1)
     
-    print(data)
+    # print(data)
     print_board(get_board_dict(data), compact=False)
     
     # Create start and end node
@@ -298,34 +196,35 @@ def main():
     priority_queue = [[start_node.f, start_node]]  # [f-score, node]
     closed_list = []
 
+    
 
-    # count = 0
-    # while len(priority_queue) > 0:
-    for i in range(8):
+    while len(priority_queue) > 0:
+    # for i in range(3):
 
         priority_queue = sort_priority_queue(priority_queue)
         curr_node = priority_queue[0][1]
         
         # print("OPEN LIST:")
-        print_priority_queue(priority_queue)
-        print()
+        # print_priority_queue(priority_queue)
         # print("current node\t", curr_node.upper)
         # print_board(get_board_dict(curr_node))  
 
+        
         if not curr_node.lower:
             # Goal state reached (no lower tokens left)
             print("Goal reached!")
 
             # print("\nCLOSED LIST:", closed_list, "\n")
-            print("Number of steps required: ", curr_node.g)
-            print("PRIORITY QUEUE: ", priority_queue)
+            print("Number of steps required: ", curr_node.f)
+            # print("PRIORITY QUEUE: ", priority_queue)
             # print_priority_queue(priority_queue)
 
             # retrace path 
             path = []
             while curr_node != start_node:
-                path.append(curr_node.upper)
+                path.append(curr_node.upper[0])
                 curr_node = curr_node.parent
+            
             break
 
         # Remove node from priority queue and add to list of visited nodes
@@ -336,8 +235,7 @@ def main():
         for neighbour in curr_node.neighbours:
                     
             # Create (temporary) child node
-            child_node = Node(curr_node, neighbour, list(curr_node.lower), 
-                              list(curr_node.block))
+            child_node = Node(curr_node, neighbour, list(curr_node.lower), list(curr_node.block))
             
             # check if the position is valid (not blocked or out of bounds)
             if not valid_position(child_node):
@@ -356,34 +254,35 @@ def main():
                 # check if we will need to update the g-score
                 continue
 
+
             # Record g and f score and add to priority queue
             child_node.g = child_g_score
             child_node.h = distance(child_node)
             child_node.f = child_node.g + child_node.h
 
-            indices = find_defeated_tokens(child_node) 
-            # upper tokens to be removed
-            for u in indices[0]:
-                child_node.upper.pop(u)
-            for l in indices[1]:
-                child_node.lower.pop(l)
+            index = token_defeated(child_node) 
+            if index == -1:
+                # no token was defeated
+                pass
+            else:
+                # Remove defeated token from board
+                child_node.lower.pop(index)  
             
             # print_node(child_node)
 
             priority_queue.append([child_node.f, child_node])
-        print("\n")
-        # count+= 1
+            # print("\n")
+            
+            
         
         # print("\n")
-    # print(count)
-    # print("\n")
-    for i in path[::-1]:
-        print(i)
+
+    print(path[::-1])
+            
             
 def print_priority_queue(pq):
-    print(pq[0][0], pq[0][1].upper, pq[0][1].lower)
-    # for i,j in pq:
-    #     print("PRIORITY QUEUE", (i,j.upper, j.lower))
+    for i,j in pq:
+        print("PRIORITY QUEUE", (i,j.upper, j.lower))
 
 def print_node(node):
     print("upper:", node.upper)
