@@ -22,16 +22,16 @@ class Node():
 
         self.parent = parent
         self.upper = upper
-        self.lower = lower # Axial coordinates (r,q)
+        self.lower = lower 
         self.block = block
         self.g = 0 # Distance so far
         self.h = 0 # Distance to goal
-        self.f = 0 # Total distance to goal from start
+        self.f = 0 # Total distance from start to goal
 
 
 def valid_position(node):
     """valid_position returns true if the position is not blocked by a block token or 
-    is out of range of the board"""
+    is inside the board"""
     
     ran = range(-4, +4+1)
     valids =  [rq for rq in [(r,q) for r in ran for q in ran if -r-q in ran]]
@@ -69,7 +69,7 @@ def sign(num):
         return 1
 
 def simple_h(up, lo):
-    # calculate the estimated cost to reach from tok1 to tok2
+    # calculate the estimated cost to reach from up to lo
     
     dr = up[1] - lo[1]
     dq = up[2] - lo[2]
@@ -79,14 +79,13 @@ def simple_h(up, lo):
     else:
         return max(abs(dr), abs(dq))
 
-
 def distance(node):
     """calculate the estimated cost (h) for a node to reach its goal state. 
     If there are multiple lower tokens, calculate the distance to the closest
     winning token, and then distance from that winning token to the next 
     closest winning token, etc. For example R -> s1 -> s2 """
     
-    up = node_copy.upper[0]
+    up = node.upper[0]
     total_h = 0
     lower_toks = list(node.lower) #create copy 
 
@@ -99,7 +98,6 @@ def distance(node):
         up = lower_toks.pop(i)
         
     return sum(h)
-
 
 def get_board_dict(data):
     
@@ -157,7 +155,6 @@ def sort_priority_queue(pq):
     # swap the first node  with the best node
     pq[0], pq[best_i] = pq[best_i], pq[0] 
     return pq
-
 
 
 def main():
