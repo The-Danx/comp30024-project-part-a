@@ -313,10 +313,10 @@ def main():
 
         if not curr_node.lower:
             # Goal state reached (no lower tokens left)
-            print("Goal reached!")
+            # print("Goal reached!")
 
             # print("\nCLOSED LIST:", closed_list, "\n")
-            print("Number of steps required: ", curr_node.g)
+            # print("Number of steps required: ", curr_node.g)
             # print_priority_queue(priority_queue)
 
             # retrace path 
@@ -324,6 +324,7 @@ def main():
             while curr_node != start_node:
                 path.append(curr_node.upper)
                 curr_node = curr_node.parent
+            path.append(start_node.upper)
             break
         
         
@@ -380,15 +381,21 @@ def main():
         # print("=========================================================")
     # print(count)
     # print("\n")
-    for i in path[::-1]:
-        print(i)
+    # for i in path[::-1]:
+    #     print(i)
+
+    i = len(path) - 1
+    while i > 0:
+        print_move(path, i)
+        i -= 1
             
 def print_priority_queue(pq):
     print(pq[0][0], pq[0][1].upper, pq[0][1].lower)
     # for i,j in pq:
         # print("PRIORITY QUEUE", (j.g, j.h, j.f, j.upper, j.lower))
 
-def print_node(node):
-    print("upper:", node.upper)
-    print("lower:", node.lower)
-    print("f:", node.f)
+def print_move(path, turn):
+    # print(path)
+    print("Turn %d: SLIDE from (%d,%d) to (%d,%d)" % (-turn + len(path), \
+            path[turn][0][1], path[turn][0][2], path[turn - 1][0][1], 
+            path[turn - 1][0][2]))
