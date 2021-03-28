@@ -50,7 +50,7 @@ class Node():
 
 def valid_position(node):
     """valid_position returns true if the position is not blocked by a block 
-    token or is out of range of the board"""
+    token and is inside range of the board"""
     
     ran = range(-4, +4+1)
     valids =  [rq for rq in [(r,q) for r in ran for q in ran if -r-q in ran]]
@@ -64,9 +64,9 @@ def valid_position(node):
     return 1
 
 def battle(u, l):
-    """ return 1 if tok1 defeats tok2, 
-               2 if tok2 is defeated by tok2
-               3 if none is defeated """  
+    """ return WIN if tok1 defeats tok2, 
+               DRAW if tok2 is defeated by tok2
+               DRAW if none is defeated """  
     if ((u == 'r' and l =='s') or 
         (u == 'p' and l =='r') or 
         (u == 's' and l =='p')):
@@ -77,7 +77,6 @@ def battle(u, l):
         return LOSE
     else: 
         return DRAW
-
 
 def upper_wl_upper(which, up_vs_lo, i):
     """Return the list of indices of upper and lower tokens to be removed when 
@@ -127,8 +126,7 @@ def find_defeated_tokens(node):
             if (up[1], up[2]) == (lo[1], lo[2]):
                 # The upper token always defeats the lower token
                 # at this point anyway, since game specifications
-                # says the game will always be winnable i.e. the 
-                # upper token will always defeat the lower token
+                # says the game will always be winnable
                 return [[],[i]]
         return tokens_defeated # will be empty list
     
@@ -195,16 +193,18 @@ def distance(node):
     token. In other words, for example R -> s1 -> s2 """
     
     total_h = 0
-    # print("\nupper: ", node.upper, "\tlower: ", node.lower)
+    # print("PARENT: upper: ", node.parent.upper, "\tlower: ", node.parent.lower)
+    # print("CURRENT: upper: ", node.upper, "\tlower: ", node.lower)
     for up in node.upper:
         # print("current upper: ", up)
         lower_toks = list(node.lower)
+        upper_symbol = up[0]
         while len(lower_toks):
             h = []
             for lo in lower_toks:
                 # make sure we are only considering the "goal" lower tokens
                 # with respect to the upper token 
-                if winning_symbol(up[0]) == lo[0]:
+                if winning_symbol(upper_symbol) == lo[0]:
                     h.append(simple_h(up, lo))
                 else:
                     h.append(float('inf')) # infinite distance
@@ -218,7 +218,8 @@ def distance(node):
                 total_h += h[i]
                 up = lower_toks.pop(i)
         
-            # print("total_h:", total_h, "\n")
+        # print("total_h:", total_h)
+    # print("\n")
     
     return total_h
 
@@ -289,7 +290,7 @@ def main():
         sys.exit(1)
     
     print(data)
-    print_board(get_board_dict(data), compact=False)
+    print_board(get_board_dict(data), compact=False, ansi=True)
     
     # Create start and end node
     start_node = Node(None, data['upper'], data['lower'], data['block'])
@@ -298,10 +299,9 @@ def main():
     priority_queue = [[start_node.f, start_node]]  # [f-score, node]
     closed_list = []
 
-
     # count = 0
     while len(priority_queue) > 0:
-    # for i in range(1):
+    # for i in range(2):
 
         priority_queue = sort_priority_queue(priority_queue)
         curr_node = priority_queue[0][1]
@@ -313,10 +313,10 @@ def main():
 
         if not curr_node.lower:
             # Goal state reached (no lower tokens left)
-            # print("Goal reached!")
+            print("Goal reached!")
 
             # print("\nCLOSED LIST:", closed_list, "\n")
-            # print("Number of steps required: ", curr_node.g)
+            print("Number of steps required: ", curr_node.g)
             # print_priority_queue(priority_queue)
 
             # retrace path 
@@ -324,12 +324,16 @@ def main():
             while curr_node != start_node:
                 path.append(curr_node.upper)
                 curr_node = curr_node.parent
-            path.append(start_node.upper)
             break
-
+        
+        
         # Remove node from priority queue and add to list of visited nodes
         priority_queue.pop(0) 
         closed_list.append(curr_node)
+
+        # do not further explore node if all upper tokens are defeated
+        if not curr_node.upper:
+            continue
 
         curr_node.get_neighbours()
         for neighbour in curr_node.neighbours:
@@ -362,9 +366,10 @@ def main():
 
             indices = find_defeated_tokens(child_node) 
             # upper tokens to be removed
-            for u in indices[0]:
+            for u in indices[0][::-1]:
                 child_node.upper.pop(u)
-            for l in indices[1]:
+            
+            for l in indices[1][::-1]:
                 child_node.lower.pop(l)
             
             # print_node(child_node)
@@ -372,27 +377,18 @@ def main():
             priority_queue.append([child_node.f, child_node])
         
         # count+= 1
-        # print("\n")
+        # print("=========================================================")
     # print(count)
     # print("\n")
-    # for i in path[::-1]:
-    #     print(i)
-
-    i = len(path) - 1
-    while i > 0:
-        print_move(path, i)
-        i -= 1
+    for i in path[::-1]:
+        print(i)
             
 def print_priority_queue(pq):
-    # print(pq[0][0], pq[0][1].upper, pq[0][1].lower)
-    for i,j in pq:
-        print("PRIORITY QUEUE", (j.g, j.h, j.f, j.upper, j.lower))
+    print(pq[0][0], pq[0][1].upper, pq[0][1].lower)
+    # for i,j in pq:
+        # print("PRIORITY QUEUE", (j.g, j.h, j.f, j.upper, j.lower))
 
 def print_node(node):
     print("upper:", node.upper)
     print("lower:", node.lower)
     print("f:", node.f)
-
-def print_move(path, turn):
-    # print(path)
-    print("Turn %d: SLIDE from (%d,%d) to (%d,%d)" % (-turn + len(path), path[turn][0][1], path[turn][0][2], path[turn - 1][0][1], path[turn - 1][0][2]))
