@@ -3,8 +3,8 @@ COMP30024 Artificial Intelligence, Semester 1, 2021
 Project Part A: Searching
 
 This module contains some helper functions for printing actions and boards.
-Feel free to use and/or modify them to help you develop your program.
 """
+
 
 def print_slide(t, r_a, q_a, r_b, q_b, **kwargs):
     """
@@ -20,7 +20,7 @@ def print_swing(t, r_a, q_a, r_b, q_b, **kwargs):
     """
     Output a swing action for turn t of a token from hex (r_a, q_a)
     to hex (r_b, q_b), according to the format instructions.
-    
+
     Any keyword arguments are passed through to the print function.
     """
     print(f"Turn {t}: SWING from {(r_a, q_a)} to {(r_b, q_b)}", **kwargs)
@@ -48,7 +48,7 @@ def print_board(board_dict, message="", compact=True, ansi=False, **kwargs):
     compact -- True if you want to use a compact board visualisation,
         False to use a bigger one including axial coordinates along with
         the printable information in each hex. Default True (small board).
-    
+
     Any other keyword arguments are passed through to the print function.
 
     Example:
@@ -136,17 +136,51 @@ def print_board(board_dict, message="", compact=True, ansi=False, **kwargs):
     # prepare the provided board contents as strings, formatted to size.
     ran = range(-4, +4+1)
     cells = []
-    for rq in [(r,q) for r in ran for q in ran if -r-q in ran]:
+    for rq in [(r, q) for r in ran for q in ran if -r-q in ran]:
         if rq in board_dict:
             cell = str(board_dict[rq]).center(5)
             if ansi:
                 # put contents in bold
                 cell = f"\033[1m{cell}\033[0m"
         else:
-            cell = "     " # 5 spaces will fill a cell
+            cell = "     "  # 5 spaces will fill a cell
         cells.append(cell)
     # prepare the message, formatted across multiple lines
     multiline_message = "\n# ".join(message.splitlines())
     # fill in the template to create the board drawing, then print!
     board = template.format(multiline_message, *cells)
     print(board, **kwargs)
+
+
+def print_priority_queue(pq):
+    """Print out the priority queue."""
+    print(pq[0][0], pq[0][1].upper, pq[0][1].lower)
+
+
+def get_board_dict(data):
+    """Convert the data dictionary into a format that is used by the 
+    print_board function.
+    """
+    board_dict = {}
+    for type, tokens in data.items():
+
+        if type == "upper":
+            for tok in tokens:
+                board_dict[(tok[1], tok[2])] = "({})".format(tok[0].upper())
+        elif type == "lower":
+            for tok in tokens:
+                board_dict[(tok[1], tok[2])] = "({})".format(tok[0])
+        else:
+            for tok in tokens:
+                board_dict[(tok[1], tok[2])] = "(X)"
+    return board_dict
+
+
+def sign(num):
+    """Return the sign of a number."""
+    if num < 0:
+        return -1
+    elif num == 0:
+        return 0
+    else:
+        return 1
