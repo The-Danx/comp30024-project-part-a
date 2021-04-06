@@ -6,24 +6,23 @@ This module contains some helper functions for printing actions and boards.
 """
 
 
-def print_slide(t, r_a, q_a, r_b, q_b, **kwargs):
+def get_board_dict(data):
+    """Convert the data dictionary into a format that is used by the 
+    print_board function.
     """
-    Output a slide action for turn t of a token from hex (r_a, q_a)
-    to hex (r_b, q_b), according to the format instructions.
+    board_dict = {}
+    for type, tokens in data.items():
 
-    Any keyword arguments are passed through to the print function.
-    """
-    print(f"Turn {t}: SLIDE from {(r_a, q_a)} to {(r_b, q_b)}", **kwargs)
-
-
-def print_swing(t, r_a, q_a, r_b, q_b, **kwargs):
-    """
-    Output a swing action for turn t of a token from hex (r_a, q_a)
-    to hex (r_b, q_b), according to the format instructions.
-
-    Any keyword arguments are passed through to the print function.
-    """
-    print(f"Turn {t}: SWING from {(r_a, q_a)} to {(r_b, q_b)}", **kwargs)
+        if type == "upper":
+            for tok in tokens:
+                board_dict[(tok[1], tok[2])] = "({})".format(tok[0].upper())
+        elif type == "lower":
+            for tok in tokens:
+                board_dict[(tok[1], tok[2])] = "({})".format(tok[0])
+        else:
+            for tok in tokens:
+                board_dict[(tok[1], tok[2])] = "(X)"
+    return board_dict
 
 
 def print_board(board_dict, message="", compact=True, ansi=False, **kwargs):
@@ -157,30 +156,29 @@ def print_priority_queue(pq):
     print(pq[0][0], pq[0][1].upper, pq[0][1].lower)
 
 
-def get_board_dict(data):
-    """Convert the data dictionary into a format that is used by the 
-    print_board function.
+def print_slide(t, r_a, q_a, r_b, q_b, **kwargs):
     """
-    board_dict = {}
-    for type, tokens in data.items():
+    Output a slide action for turn t of a token from hex (r_a, q_a)
+    to hex (r_b, q_b), according to the format instructions.
 
-        if type == "upper":
-            for tok in tokens:
-                board_dict[(tok[1], tok[2])] = "({})".format(tok[0].upper())
-        elif type == "lower":
-            for tok in tokens:
-                board_dict[(tok[1], tok[2])] = "({})".format(tok[0])
-        else:
-            for tok in tokens:
-                board_dict[(tok[1], tok[2])] = "(X)"
-    return board_dict
+    Any keyword arguments are passed through to the print function.
+    """
+    print(f"Turn {t}: SLIDE from {(r_a, q_a)} to {(r_b, q_b)}", **kwargs)
+
+
+def print_swing(t, r_a, q_a, r_b, q_b, **kwargs):
+    """
+    Output a swing action for turn t of a token from hex (r_a, q_a)
+    to hex (r_b, q_b), according to the format instructions.
+
+    Any keyword arguments are passed through to the print function.
+    """
+    print(f"Turn {t}: SWING from {(r_a, q_a)} to {(r_b, q_b)}", **kwargs)
 
 
 def sign(num):
     """Return the sign of a number."""
     if num < 0:
         return -1
-    elif num == 0:
-        return 0
     else:
         return 1

@@ -5,26 +5,11 @@ Project Part A: Searching
 This module contains game logic.
 """
 
+from collections import defaultdict
+
 WIN = 'w'
 LOSE = 'l'
 DRAW = 'd'
-
-
-def valid_position(node):
-    """Return true if the position is not blocked by a block
-    token and is inside range of the board.
-    """
-    ran = range(-4, +4+1)
-    valids = [rq for rq in [(r, q) for r in ran for q in ran if -r-q in ran]]
-    blocks = [(i[1], i[2]) for i in node.block]
-    valids = [pos for pos in valids if pos not in blocks]
-
-    for up in node.upper:
-        tok = (up[1], up[2])
-        if tok not in valids:
-            return 0
-
-    return 1
 
 
 def battle(u, l):
@@ -42,47 +27,6 @@ def battle(u, l):
         return LOSE
     else:
         return DRAW
-
-
-def upper_wl_upper(which, up_vs_lo, i):
-    """Return the list of indices of upper and lower tokens to be removed when
-    up1 wins or loses with up2.  Parameter "which" is the index of upper
-    token which won up_vs_up.
-    """
-    if up_vs_lo == WIN:
-        # Lower token has same symbol as u2.
-        # Other upper token and lower token defeated
-        return [[int(not which)], [i]]
-    elif up_vs_lo == LOSE:
-        # up1, up2, and lower token all have different symbols
-        return [[0, 1], [i]]  # All tokens defeated
-    elif up_vs_lo == DRAW:
-        # Only u2 is defeated
-        return [[int(not which)], []]
-
-
-def upper_d_upper(up_vs_lo, i):
-    """Return a list of indices of upper and lower tokens to be removed when
-    up1 draws with up2.
-    """
-    if up_vs_lo == WIN:
-        return [[], [i]]  # Lower token is defeated
-    elif up_vs_lo == LOSE:
-        return [[0, 1], []]  # Both upper tokens are defeated
-    elif up_vs_lo == DRAW:
-        return [[], []]  # Nothing happens
-
-
-def upper_vs_lower(which, u, l, tokens_defeated, i):
-    """Return and append the defeated token to a list from a battle between an
-    upper and lower token.
-    """
-    up_vs_lo = battle(u, l)
-    if up_vs_lo == WIN:
-        tokens_defeated[1].append(i)
-    elif up_vs_lo == LOSE:
-        tokens_defeated[0].append(int(not which))
-    return tokens_defeated
 
 
 def find_defeated_tokens(node):
@@ -132,6 +76,119 @@ def find_defeated_tokens(node):
         return tokens_defeated
 
 
+def print_move(path, turn):
+    """Print out a move based upon the specification outline."""
+    print("Turn %d: SLIDE from (%d,%d) to (%d,%d)" % (-turn + len(path),
+                                                      path[turn][0][1], path[turn][0][2], path[turn - 1][0][1],
+                                                      path[turn - 1][0][2]))
+
+
+def remove_defeated_tokens(node):
+    """Update a node by removing all defeated tokens."""
+    # key: (r,q) and value: list of tokens on (r,q)
+    board_dict = defaultdict(list)
+
+    # Fill board_dict
+    for up in list(node.upper):
+        board_dict[(up[1], up[2])].append(up[0])
+    for lo in list(node.lower):
+        board_dict[(lo[1], lo[2])].append(lo[0])
+
+    for loc, symbols in board_dict.items():
+        present = set([i for i in symbols])
+        winner = ''  # Winning symbol at each loc
+
+        if present == {'r', 'p', 's'}:
+            pass  # Winner stays empty i.e. no winner
+        elif len(present) == 1:
+            winner = present.pop()
+        else:
+            # Two symbols fight, get one winner
+            present = list(present)
+            if win(present[0], present[1]):
+                winner = present[0]
+            else:
+                winner = present[1]
+
+        board_dict[loc] = winner  # Store the winner at each loc
+
+    # Remove tokens that are defeated by winner
+    for up in node.upper[::-1]:
+        if up[0] != board_dict[(up[1], up[2])]:
+            node.upper.remove(up)
+    for lo in node.lower[::-1]:
+        if lo[0] != board_dict[(lo[1], lo[2])]:
+            node.lower.remove(lo)
+
+    return 1
+
+
+def upper_d_upper(up_vs_lo, i):
+    """Return a list of indices of upper and lower tokens to be removed when
+    up1 draws with up2.
+    """
+    if up_vs_lo == WIN:
+        return [[], [i]]  # Lower token is defeated
+    elif up_vs_lo == LOSE:
+        return [[0, 1], []]  # Both upper tokens are defeated
+    elif up_vs_lo == DRAW:
+        return [[], []]  # Nothing happens
+
+
+def upper_vs_lower(which, u, l, tokens_defeated, i):
+    """Return and append the defeated token to a list from a battle between an
+    upper and lower token.
+    """
+    up_vs_lo = battle(u, l)
+    if up_vs_lo == WIN:
+        tokens_defeated[1].append(i)
+    elif up_vs_lo == LOSE:
+        tokens_defeated[0].append(int(not which))
+    return tokens_defeated
+
+
+def upper_wl_upper(which, up_vs_lo, i):
+    """Return the list of indices of upper and lower tokens to be removed when
+    up1 wins or loses with up2.  Parameter "which" is the index of upper
+    token which won up_vs_up.
+    """
+    if up_vs_lo == WIN:
+        # Lower token has same symbol as u2.
+        # Other upper token and lower token defeated
+        return [[int(not which)], [i]]
+    elif up_vs_lo == LOSE:
+        # up1, up2, and lower token all have different symbols
+        return [[0, 1], [i]]  # All tokens defeated
+    elif up_vs_lo == DRAW:
+        # Only u2 is defeated
+        return [[int(not which)], []]
+
+
+def valid_position(node):
+    """Return true if the position is not blocked by a block
+    token and is inside range of the board.
+    """
+    ran = range(-4, +4+1)
+    valids = [rq for rq in [(r, q) for r in ran for q in ran if -r-q in ran]]
+    blocks = [(i[1], i[2]) for i in node.block]
+    valids = [pos for pos in valids if pos not in blocks]
+
+    for up in node.upper:
+        tok = (up[1], up[2])
+        if tok not in valids:
+            return 0
+    return 1
+
+
+def win(s1, s2):
+    """Return true if s1 defeats s2, false otherwise."""
+    if ((s1 == 'r' and s2 == 's') or
+        (s1 == 'p' and s2 == 'r') or
+            (s1 == 's' and s2 == 'p')):
+        return True
+    return False
+
+
 def winning_symbol(up):
     """Return the symbol that is defeated by up."""
     if up == "r":
@@ -140,10 +197,3 @@ def winning_symbol(up):
         return "p"
     elif up == "p":
         return "r"
-
-
-def print_move(path, turn):
-    """Print out a move based upon the specification outline."""
-    print("Turn %d: SLIDE from (%d,%d) to (%d,%d)" % (-turn + len(path),
-                                                      path[turn][0][1], path[turn][0][2], path[turn - 1][0][1],
-                                                      path[turn - 1][0][2]))
