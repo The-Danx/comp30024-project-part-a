@@ -8,8 +8,7 @@ This module contains search logic.
 from collections import defaultdict
 from copy import deepcopy
 from itertools import product
-from search.game import winning_symbol
-from search.util import sign
+from search.game import winning_symbol, distance
 
 
 class Node():
@@ -20,11 +19,11 @@ class Node():
         self.upper = upper
         self.lower = lower
         self.block = block
+        self.upper_copy = []
         self.neighbours = []
         self.g = 0  # Distance so far
         self.h = 0  # Distance to goal
         self.f = 0  # Total distance to goal from start
-        self.defeatedTokensRemaining = defeatedTokensRemaining
 
     def get_neighbours(self):
         """Get all combinations of neighbours of the upper tokens"""
@@ -70,6 +69,10 @@ class Node():
             self.neighbours.append(list(map(list, i)))
         return 1
 
+    def copy_upper(self):
+        """have a copy of the upper tokens before they are defeated"""
+        self.upper_copy = deepcopy(self.upper)
+        return 1
 
 def calculate_h(node):
     """Calculate the estimated cost(h) for a node to reach its goal state.
@@ -103,17 +106,6 @@ def calculate_h(node):
     return total_h
 
 
-def distance(tok1, tok2):
-    """Calculate the distance between two tokens."""
-    dr = tok1[1] - tok2[1]
-    dq = tok1[2] - tok2[2]
-
-    if sign(dr) == sign(dq):
-        return abs(dr+dq)
-    else:
-        return max(abs(dr), abs(dq))
-
-
 def get_g_score(node, pq):
     """Check if the combination of upper tokens and lower tokens can be found
     in the priority queue; if yes, return the g-score of the similar node
@@ -129,17 +121,6 @@ def get_g_score(node, pq):
         return [n.g for f, n in pq][i]
     except:
         return -1
-
-
-def simple_h(tok1, tok2):
-    """Return the estimated cost to reach tok2 from tok1."""
-    dr = tok1[1] - tok2[1]
-    dq = tok1[2] - tok2[2]
-
-    if sign(dr) == sign(dq):
-        return abs(dr+dq)
-    else:
-        return max(abs(dr), abs(dq))
 
 
 def sort_priority_queue(pq):

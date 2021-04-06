@@ -4,6 +4,7 @@ Project Part A: Searching
 
 This module contains some helper functions for printing actions and boards.
 """
+from search.node import distance
 
 
 def get_board_dict(data):
@@ -151,6 +152,36 @@ def print_board(board_dict, message="", compact=True, ansi=False, **kwargs):
     print(board, **kwargs)
 
 
+def print_move(turn, current, after):
+    """Print swing or slide action"""
+    for j in range(len(current)):
+        if distance(current[j], after[j])==2:
+            print_swing(turn, current[j][1], current[j][2], 
+                        after[j][1], after[j][2])
+        else:
+            print_slide(turn, current[j][1], current[j][2], 
+                        after[j][1], after[j][2])
+
+
+def print_path(path):
+    """Print the solution in required format"""
+    i = len(path) - 1
+    while i > 0:
+        curr_tokens = path[i].upper
+        next_tokens = path[i-1].upper
+        curr_tokens_copy = path[i].upper_copy
+        next_tokens_copy = path[i-1].upper_copy
+
+        # when no upper tokens are defeated
+        if len(curr_tokens) == len(next_tokens):
+            print_move(-i + len(path), curr_tokens, next_tokens)
+        # upper tokens are defeated
+        else:
+            print_move(-i + len(path), curr_tokens, next_tokens_copy)
+
+        i -= 1
+
+
 def print_priority_queue(pq):
     """Print out the priority queue."""
     print(pq[0][0], pq[0][1].upper, pq[0][1].lower)
@@ -174,11 +205,3 @@ def print_swing(t, r_a, q_a, r_b, q_b, **kwargs):
     Any keyword arguments are passed through to the print function.
     """
     print(f"Turn {t}: SWING from {(r_a, q_a)} to {(r_b, q_b)}", **kwargs)
-
-
-def sign(num):
-    """Return the sign of a number."""
-    if num < 0:
-        return -1
-    else:
-        return 1

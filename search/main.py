@@ -10,8 +10,8 @@ import json
 import sys
 from copy import deepcopy
 from search.game import remove_defeated_tokens, valid_position
-from search.search import calculate_h, distance, get_g_score, Node, sort_priority_queue
-from search.util import get_board_dict, print_board, print_slide, print_swing
+from search.node import calculate_h, get_g_score, Node, sort_priority_queue
+from search.util import get_board_dict, print_board, print_path
 
 
 def main():
@@ -23,11 +23,11 @@ def main():
         print("usage: python3 -m search path/to/input.json", file=sys.stderr)
         sys.exit(1)
 
-    print_board(get_board_dict(data), compact=False, ansi=True)
+    # print_board(get_board_dict(data), compact=False, ansi=True)
 
     # Create start and end node
     start_node = Node(None, data['upper'], data['lower'], data['block'])
-    start_node.defeatedTokensRemaining = start_node
+    start_node.copy_upper()
 
     # Initialise lists for open and closed nodes
     priority_queue = [[start_node.f, start_node]]  # [f-score, node]
@@ -40,10 +40,10 @@ def main():
         if not curr_node.lower:
             # Retrace path
             path = []
-            while curr_node.defeatedTokensRemaining != start_node:
-                path.append(curr_node.defeatedTokensRemaining.upper)
+            while curr_node != start_node:
+                path.append(curr_node)
                 curr_node = curr_node.parent
-            path.append(start_node.upper)
+            path.append(start_node)
             break
 
         # Remove node from priority queue and add to list of visited nodes
@@ -60,6 +60,7 @@ def main():
             # Create (temporary) child node
             child_node = Node(curr_node, neighbour, list(curr_node.lower),
                               list(curr_node.block))
+            child_node.copy_upper()
 
             # Check if the position is valid (not blocked or out of bounds)
             if not valid_position(child_node):
@@ -72,7 +73,6 @@ def main():
             child_node.h = calculate_h(child_node)
             child_node.f = child_node.g + child_node.h
 
-            child_node.defeatedTokensRemaining = deepcopy(child_node)
             remove_defeated_tokens(child_node)
 
             if child_node in closed_list:
@@ -88,14 +88,4 @@ def main():
 
             priority_queue.append([child_node.f, child_node])
 
-    # Print out the final solution based upon specification
-    i = len(path) - 1
-    while i > 0:
-        for j in range(len(path[i - 1])):
-            if distance(path[i][j], path[i-1][j]) == 2:
-                print_swing(-i + len(path), path[i][j][1], path[i]
-                            [j][2], path[i - 1][j][1], path[i - 1][j][2])
-            else:
-                print_slide(-i + len(path), path[i][j][1], path[i]
-                            [j][2], path[i - 1][j][1], path[i - 1][j][2])
-        i -= 1
+    print_path(path)
